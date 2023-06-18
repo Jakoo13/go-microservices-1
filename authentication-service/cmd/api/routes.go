@@ -23,7 +23,8 @@ func (app *Config) routes() http.Handler {
 
 	router.Use(middleware.Heartbeat("/ping"))
 
-	router.Post("/authenticate", app.Authenticate)
+	router.Post("/login", app.Login)
+	router.Post("/register", app.Register)
 
 	return router
 

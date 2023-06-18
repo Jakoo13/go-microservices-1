@@ -4,15 +4,24 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 )
 
 type RequestPayload struct {
-	Action string      `json:"action"`
-	Auth   AuthPayload `json:"auth,omitempty"`
+	Action   string          `json:"action"`
+	Register RegisterPayload `json:"register,omitempty"`
+	Login    LoginPayload    `json:"login,omitempty"`
 }
 
-type AuthPayload struct {
+type RegisterPayload struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+}
+
+type LoginPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -42,19 +51,72 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch requestPayload.Action {
-	case "auth":
-		app.Authenticate(w, requestPayload.Auth)
+	case "register":
+		app.Register(w, requestPayload.Register)
+	case "login":
+		app.Login(w, requestPayload.Login)
 	default:
 		app.errorJSON(w, errors.New("unknown action"))
 	}
 }
 
-func (app *Config) Authenticate(w http.ResponseWriter, authPayload AuthPayload) {
+func (app *Config) Register(w http.ResponseWriter, registerPayload RegisterPayload) {
 	// Create some json we'll send to the auth microservice
-	jsonData, _ := json.MarshalIndent(authPayload, "", "\t")
+	jsonData, _ := json.MarshalIndent(registerPayload, "", "\t")
 
 	// Call the service
-	request, err := http.NewRequest("POST", "http://authentication-service/authenticate", bytes.NewBuffer(jsonData))
+	request, err := http.NewRequest("POST", "http://authentication-service/register", bytes.NewBuffer(jsonData))
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	log.Default().Println("MADE IT THIS FAR")
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	defer response.Body.Close()
+
+	// make sure we get back the correct status code
+	if response.StatusCode == http.StatusConflict {
+		app.errorJSON(w, errors.New("email address already registered"))
+		return
+	}
+
+	// create a variable we'll read the response.Body into
+	var jsonFromService jsonResponse
+
+	// decode the json from the auth service
+	err = json.NewDecoder(response.Body).Decode(&jsonFromService)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	if jsonFromService.Error {
+		app.errorJSON(w, err, http.StatusUnauthorized)
+		return
+	}
+
+	// We have valid Register if we reach here. Send the response back to the client
+	var payload jsonResponse
+	payload.Error = false
+	payload.Message = "Registered!"
+	payload.Data = jsonFromService.Data
+
+	app.writeJSON(w, http.StatusAccepted, payload)
+
+}
+
+func (app *Config) Login(w http.ResponseWriter, loginPayload LoginPayload) {
+	// Create some json we'll send to the auth microservice
+	jsonData, _ := json.MarshalIndent(loginPayload, "", "\t")
+
+	// Call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/login", bytes.NewBuffer(jsonData))
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -67,7 +129,7 @@ func (app *Config) Authenticate(w http.ResponseWriter, authPayload AuthPayload) 
 		return
 	}
 	defer response.Body.Close()
-
+	log.Default().Println("STATUS CODE: ", response.StatusCode)
 	// make sure we get back the correct status code
 	if response.StatusCode == http.StatusUnauthorized {
 		app.errorJSON(w, errors.New("invalid credentials"))
