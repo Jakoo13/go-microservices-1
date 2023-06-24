@@ -12,6 +12,7 @@ type RequestPayload struct {
 	Action   string          `json:"action"`
 	Register RegisterPayload `json:"register,omitempty"`
 	Login    LoginPayload    `json:"login,omitempty"`
+	Log      LogPayload      `json:"log,omitempty"`
 }
 
 type RegisterPayload struct {
@@ -24,6 +25,11 @@ type RegisterPayload struct {
 type LoginPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type LogPayload struct {
+	Name string `json:"name"`
+	Data string `json:"data"`
 }
 
 func (app *Config) Broker(w http.ResponseWriter, r *http.Request) {
@@ -51,18 +57,59 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch requestPayload.Action {
+	case "log":
+		app.logItem(w, requestPayload.Log)
 	case "register":
-		app.Register(w, requestPayload.Register)
+		app.register(w, requestPayload.Register)
 	case "login":
-		app.Login(w, requestPayload.Login)
+		app.login(w, requestPayload.Login)
 	case "getAllUsers":
-		app.GetAllUsers(w)
+		app.getAllUsers(w)
 	default:
 		app.errorJSON(w, errors.New("unknown action"))
 	}
 }
 
-func (app *Config) Register(w http.ResponseWriter, registerPayload RegisterPayload) {
+func (app *Config) logItem(w http.ResponseWriter, logPayload LogPayload) {
+	// TODO: in prod dont use MarshalIndent, use Marshal
+	jsonData, _ := json.MarshalIndent(logPayload, "", "\t")
+
+	logServiceURL := "http://logger-service/log"
+
+	// Build request
+	request, err := http.NewRequest("POST", logServiceURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	// Set Headers
+	request.Header.Set("Content-Type", "application/json")
+
+	// Send request
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	defer response.Body.Close()
+
+	// make sure we get back the correct status code
+	if response.StatusCode != http.StatusAccepted {
+		app.errorJSON(w, errors.New("error calling logger service"))
+		return
+	}
+
+	var payload jsonResponse
+	payload.Error = false
+	payload.Message = "Logged!"
+
+	app.writeJSON(w, http.StatusAccepted, payload)
+}
+
+
+func (app *Config) register(w http.ResponseWriter, registerPayload RegisterPayload) {
 	// Create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(registerPayload, "", "\t")
 
@@ -112,7 +159,7 @@ func (app *Config) Register(w http.ResponseWriter, registerPayload RegisterPaylo
 
 }
 
-func (app *Config) Login(w http.ResponseWriter, loginPayload LoginPayload) {
+func (app *Config) login(w http.ResponseWriter, loginPayload LoginPayload) {
 	// Create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(loginPayload, "", "\t")
 
@@ -165,7 +212,7 @@ func (app *Config) Login(w http.ResponseWriter, loginPayload LoginPayload) {
 	// log.Default().Println(payload.Data)
 }
 
-func (app *Config) GetAllUsers(w http.ResponseWriter) {
+func (app *Config) getAllUsers(w http.ResponseWriter) {
 	// Call the service
 	request, err := http.NewRequest("GET", "http://authentication-service/user", nil)
 	if err != nil {

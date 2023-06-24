@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	webPort = "80"
-	rpcPort = "5001"
-	mongoURL = "mongodb://localhost:27017"
+	webPort  = "80"
+	rpcPort  = "5001"
+	mongoURL = "mongodb://mongo:27017"
 	gRpcPort = "50001"
 )
 
@@ -43,7 +43,7 @@ func main() {
 		if err = client.Disconnect(ctx); err != nil {
 			panic(err)
 		}
-	} ()
+	}()
 
 	// set up config
 	app := Config{
@@ -51,23 +51,36 @@ func main() {
 	}
 
 	// start web server
-	go app.serve()
-}
-
-// New function to start up webserver to make things easier when using gRPC, could do this within main but this is cleaner 
-func (app *Config) serve() {
+	// go app.serve()
 	// set up Web Server
+	log.Println("Starting service on port ", webPort)
 	srv := &http.Server{
-		Addr: fmt.Sprintf(":%s", webPort),
+		Addr:    fmt.Sprintf(":%s", webPort),
 		Handler: app.routes(),
 	}
 
 	// start Web Server
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	if err != nil {
 		log.Panic(err)
 	}
 }
+
+// New function to start up webserver to make things easier when using gRPC, could do this within main but this is cleaner
+// func (app *Config) serve() {
+// 	// set up Web Server
+// 	srv := &http.Server{
+// 		Addr:    fmt.Sprintf(":%s", webPort),
+// 		Handler: app.routes(),
+// 	}
+
+// 	// start Web Server
+// 	err := srv.ListenAndServe()
+// 	if err != nil {
+// 		log.Panic(err)
+// 	}
+
+// }
 
 func connectToMongo() (*mongo.Client, error) {
 	// create connection options
