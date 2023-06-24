@@ -35,7 +35,7 @@ type Models struct {
 // User is the structure which holds one user from the database.
 type User struct {
 	ID        int       `json:"id"`
-	Email     string    `json:"email" binding:"required,email" gorm:"unique;not null"`
+	Email     string    `json:"email"`
 	FirstName string    `json:"first_name,omitempty"`
 	LastName  string    `json:"last_name,omitempty"`
 	Password  string    `json:"-"`

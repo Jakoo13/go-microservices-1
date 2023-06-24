@@ -28,6 +28,13 @@ func (app *Config) Register(w http.ResponseWriter, r *http.Request) {
 		Password:  requestPayload.Password,
 	}
 
+	// first check if the user already exists
+	_, err = app.Models.User.GetByEmail(user.Email)
+	if err == nil {
+		app.errorJSON(w, errors.New("user already exists"), http.StatusConflict)
+		return
+	}
+
 	_, err = app.Models.User.Insert(user)
 	if err != nil {
 		app.errorJSON(w, err, http.StatusInternalServerError)
