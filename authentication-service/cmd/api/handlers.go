@@ -76,3 +76,19 @@ func (app *Config) Login(w http.ResponseWriter, r *http.Request) {
 
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
+
+func (app *Config) GetAll(w http.ResponseWriter, r *http.Request) {
+	users, err := app.Models.User.GetAll()
+	if err != nil {
+		app.errorJSON(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	payload := jsonResponse{
+		Error:   false,
+		Message: "All users",
+		Data:    users,
+	}
+
+	app.writeJSON(w, http.StatusAccepted, payload)
+}

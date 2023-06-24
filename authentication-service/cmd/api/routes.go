@@ -25,6 +25,7 @@ func (app *Config) routes() http.Handler {
 
 	router.Post("/login", app.Login)
 	router.Post("/register", app.Register)
+	router.Get("/user", app.GetAll)
 
 	return router
 

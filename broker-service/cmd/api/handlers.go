@@ -55,6 +55,8 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		app.Register(w, requestPayload.Register)
 	case "login":
 		app.Login(w, requestPayload.Login)
+	case "getAllUsers":
+		app.GetAllUsers(w)
 	default:
 		app.errorJSON(w, errors.New("unknown action"))
 	}
@@ -70,7 +72,6 @@ func (app *Config) Register(w http.ResponseWriter, registerPayload RegisterPaylo
 		app.errorJSON(w, err)
 		return
 	}
-	log.Default().Println("MADE IT THIS FAR")
 
 	client := &http.Client{}
 	response, err := client.Do(request)
@@ -162,4 +163,50 @@ func (app *Config) Login(w http.ResponseWriter, loginPayload LoginPayload) {
 
 	app.writeJSON(w, http.StatusAccepted, payload)
 	// log.Default().Println(payload.Data)
+}
+
+func (app *Config) GetAllUsers(w http.ResponseWriter) {
+	// Call the service
+	request, err := http.NewRequest("GET", "http://authentication-service/user", nil)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	defer response.Body.Close()
+
+	// make sure we get back the correct status code
+	if response.StatusCode != http.StatusAccepted {
+		app.errorJSON(w, errors.New("error calling authentication service"))
+		return
+	}
+
+	// create a variable we'll read the response.Body into
+	var jsonFromService jsonResponse
+
+	// decode the json from the auth service
+	err = json.NewDecoder(response.Body).Decode(&jsonFromService)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	if jsonFromService.Error {
+		app.errorJSON(w, err, http.StatusUnauthorized)
+		return
+	}
+
+	// We have valid login if we reach here. Send the response back to the client
+	var payload jsonResponse
+	payload.Error = false
+	payload.Message = "Authenticated!"
+	payload.Data = jsonFromService.Data
+
+	app.writeJSON(w, http.StatusAccepted, payload)
 }

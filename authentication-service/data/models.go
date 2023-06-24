@@ -19,7 +19,7 @@ var db *sql.DB
 func New(dbPool *sql.DB) Models {
 	db = dbPool
 
-	// For our usecase, we only have type User model 
+	// For our usecase, we only have type User model
 	return Models{
 		User: User{},
 	}
@@ -35,7 +35,7 @@ type Models struct {
 // User is the structure which holds one user from the database.
 type User struct {
 	ID        int       `json:"id"`
-	Email     string    `json:"email"`
+	Email     string    `json:"email" binding:"required,email" gorm:"unique;not null"`
 	FirstName string    `json:"first_name,omitempty"`
 	LastName  string    `json:"last_name,omitempty"`
 	Password  string    `json:"-"`
