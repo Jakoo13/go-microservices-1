@@ -118,7 +118,7 @@ func (app *Config) logLoginRequest(name, data string) error {
 	entry.Name = name
 	entry.Data = data
 
-	jsonData, _ := json.MarshalIndent(entry, "prefix string", "\t")
+	jsonData, _ := json.MarshalIndent(entry, "", "\t")
 	// comes from docker-compose.yml
 	logServiceUrl := "http://logger-service/log"
 

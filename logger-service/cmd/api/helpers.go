@@ -10,9 +10,9 @@ import (
 // Helper functions for reading and writing JSON
 
 type jsonResponse struct {
-	Error bool `json:"error"`
+	Error   bool   `json:"error"`
 	Message string `json:"message"`
-	Data any `json:"data,omitempty"`
+	Data    any    `json:"data,omitempty"`
 }
 
 // Read JSON
@@ -36,7 +36,7 @@ func (app *Config) readJSON(w http.ResponseWriter, r *http.Request, data any) er
 	return nil
 }
 
-// Write JSON
+// writeJSON takes a response status code and arbitrary data and writes a json response to the client
 func (app *Config) writeJSON(w http.ResponseWriter, status int, data any, headers ...http.Header) error {
 	out, err := json.Marshal(data)
 	if err != nil {
@@ -60,7 +60,7 @@ func (app *Config) writeJSON(w http.ResponseWriter, status int, data any, header
 }
 
 // Write JSON error
-func (app *Config) errorJSON(w http.ResponseWriter,err error, status ...int) error {
+func (app *Config) errorJSON(w http.ResponseWriter, err error, status ...int) error {
 	statusCode := http.StatusBadRequest
 	if len(status) > 0 {
 		statusCode = status[0]
@@ -72,5 +72,3 @@ func (app *Config) errorJSON(w http.ResponseWriter,err error, status ...int) err
 
 	return app.writeJSON(w, statusCode, payload)
 }
-
-
