@@ -27,6 +27,8 @@ func (app *Config) routes() http.Handler {
 
 	router.Post("/", app.Broker)
 
+	router.Post("/log-grpc", app.LogViaGRPC)
+
 	// Handles all requests
 	router.Post("/handle", app.HandleSubmission)
 
