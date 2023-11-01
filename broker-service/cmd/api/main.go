@@ -11,7 +11,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-const webPort = "80"
+const webPort = "8080"
 
 type Config struct {
 	// rabbitMQ connection
@@ -33,7 +33,7 @@ func main() {
 		Rabbit: rabbitConn,
 	}
 
-	log.Printf("Starting front end service on port %s\n", webPort)
+	log.Printf("Starting broker service on port %s\n", webPort)
 
 	// define http server
 	srv := &http.Server{
